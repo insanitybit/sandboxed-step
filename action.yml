@@ -113,9 +113,7 @@ runs:
 
         # Generate OCI config using the pre-built binary
         # Write the env input to a temporary file to safely handle quotes and newlines
-        cat > "$SANDBOX_DIR/additional_env.txt" << SANDBOXED_ENV_EOF
-        $INPUTS_ENV
-        SANDBOXED_ENV_EOF
+        printenv INPUTS_ENV > "$SANDBOX_DIR/additional_env.txt"
         # Only pass the file if it's not empty
         if [ -s "$SANDBOX_DIR/additional_env.txt" ]; then
           "$GITHUB_ACTION_PATH/generate-config" "$SANDBOX_DIR/additional_env.txt" > "$SANDBOX_DIR/config.json"
