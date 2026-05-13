@@ -477,6 +477,58 @@ jobs:
           echo "✓ Modifications inside persist-path persisted as expected"
           rm -rf artifacts
 
+      - name: Test persist-paths with multiple separate directories
+        uses: ./
+        with:
+          persist-paths: |
+            out-a
+            out-b
+          run: |
+            mkdir -p out-a out-b
+            echo "a" > out-a/file.txt
+            echo "b" > out-b/file.txt
+            echo "should NOT persist" > out-c.txt
+
+      - name: Verify multiple persist-paths persisted independently
+        run: |
+          if [ ! -f out-a/file.txt ] || ! grep -q "^a$" out-a/file.txt; then
+            echo "ERROR: out-a/file.txt missing or wrong content"
+            exit 1
+          fi
+          if [ ! -f out-b/file.txt ] || ! grep -q "^b$" out-b/file.txt; then
+            echo "ERROR: out-b/file.txt missing or wrong content"
+            exit 1
+          fi
+          if [ -f out-c.txt ]; then
+            echo "ERROR: out-c.txt leaked to host!"
+            exit 1
+          fi
+          echo "✓ Multiple persist-paths persisted independently"
+          rm -rf out-a out-b
+
+      - name: Test nested persist-path (only listed subtree persists)
+        uses: ./
+        with:
+          persist-paths: |
+            build/output
+          run: |
+            mkdir -p build/output build/intermediate
+            echo "persisted" > build/output/result.txt
+            echo "should NOT persist" > build/intermediate/cache.txt
+
+      - name: Verify nested persist-path behavior
+        run: |
+          if [ ! -f build/output/result.txt ]; then
+            echo "ERROR: build/output/result.txt did not persist"
+            exit 1
+          fi
+          if [ -f build/intermediate/cache.txt ]; then
+            echo "ERROR: build/intermediate/cache.txt leaked - sibling of persist-path was not discarded"
+            exit 1
+          fi
+          echo "✓ Nested persist-path persisted child only, sibling discarded"
+          rm -rf build
+
       - name: Plant symlink pointing outside workspace
         run: ln -s /etc escape-symlink
 
